@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Offline Portable Doomscrolling
 Doomscrolling machine that runs on an ESP32.<br>
 I specifically used the Espressif ESP32-WROOM-32U and added a Motorola SBG6580P2 antenna.
@@ -31,7 +30,3 @@ Thanks to https://lastminuteengineers.com/esp32-microsd-card-tutorial/ and https
 
 # Contact
 email -> trajesh@3272010.xyz
-=======
-# Offline-Portable-Doomscrolling
-Doomscrolling on an ESP32.
->>>>>>> 4090119ddffb71d2c98f35ed5999e3f2c41530fd
