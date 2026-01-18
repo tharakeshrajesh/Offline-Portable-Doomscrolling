@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPD</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+.video-wrapper,
+.tap-zone,
+video {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 390px;
+  aspect-ratio: 9 / 16;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  border: 1px solid #222;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 33.33%;
+  z-index: 2;
+}
+
+.tap-left { left: 0; }
+.tap-center { left: 33.33%; }
+.tap-right { right: 0; }
+
+.play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 64px;
+  color: rgba(255,255,255,0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 3;
+}
+
+.play-icon.show {
+  opacity: 1;
+}
+
+.progress-container {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="video-wrapper">
+  <video id="video" autoplay playsinline loop>
+    <source src="/video.mp4" type="video/mp4">
+  </video>
+
+  <div class="tap-zone tap-left"></div>
+  <div class="tap-zone tap-center"></div>
+  <div class="tap-zone tap-right"></div>
+
+  <div id="icon" class="play-icon">▶</div>
+
+  <div class="progress-container">
+    <div id="progress" class="progress-bar"></div>
+  </div>
+</div>
+
+<script>
+const video = document.getElementById("video");
+const icon = document.getElementById("icon");
+const progress = document.getElementById("progress");
+
+let iconTimeout;
+
+function showIcon(symbol) {
+  icon.textContent = symbol;
+  icon.classList.add("show");
+  clearTimeout(iconTimeout);
+  iconTimeout = setTimeout(() => {
+    icon.classList.remove("show");
+  }, 600);
+}
+
+document.querySelector(".tap-center").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (video.paused) {
+    video.play();
+    showIcon("▶");
+  } else {
+    video.pause();
+    showIcon("⏸");
+  }
+});
+
+["tap-left", "tap-right"].forEach(cls => {
+  const el = document.querySelector("." + cls);
+
+  const start = (e) => {
+    e.preventDefault();
+    video.playbackRate = 2;
+  };
+
+  const end = (e) => {
+    e.preventDefault();
+    video.playbackRate = 1;
+  };
+
+  el.addEventListener("touchstart", start, { passive: false });
+  el.addEventListener("mousedown", start);
+
+  ["touchend", "touchcancel", "mouseup", "mouseleave"].forEach(evt => {
+    el.addEventListener(evt, end);
+  });
+});
+
+video.addEventListener("timeupdate", () => {
+  if (!video.duration) return;
+  progress.style.width = (video.currentTime / video.duration) * 100 + "%";
+});
+</script>
+
+</body>
+</html>
