@@ -33,6 +33,31 @@ void setup() {
   server.begin();
 }
 
+String getVideoId(const int index) {
+    File dir = SD.open("/");
+    if (!dir) return "err";
+
+    File file = dir.openNextFile();
+    while (file) {
+        if (!file.isDirectory()) {
+            String fname = file.name();
+            int len = fname.length();
+            if (len >= 3) {
+                String suffix = fname.substring(len - 3);
+                if (fname.endsWith("-"+index)) {
+                    file.close();
+                    dir.close();
+                    return fname;
+                }
+            }
+        }
+        file.close();
+        file = dir.openNextFile();
+    }
+    dir.close();
+    return "done";
+}
+
 void loop() {
   WiFiClient client = server.available();
   if (!client) return;
@@ -45,7 +70,18 @@ void loop() {
     if (c == '\n' && request.endsWith("\r\n\r\n")) break;
   }
 
-  if (request.indexOf("GET /video.mp4") >= 0) {
+  if (request.startsWith("GET /videoId")) {
+    String url = request.substring(4, request.indexOf(" HTTP"));
+    String params;
+    if (url.indexOf('?') >= 0) {
+        params = url.substring(url.indexOf('=') + 1);
+    }
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/plain");
+    client.println("Connection: close");
+    client.println();
+    client.println(getVideoId(params.toInt()));
+  } else if (request.indexOf("GET /video.mp4") >= 0) {
     File video = SD.open("/video.mp4", FILE_READ);
     if (video) {
       size_t size = video.size();
@@ -65,7 +101,7 @@ void loop() {
       }
       video.close();
     }
-  } else {
+  } else if (request.startsWith("GET /index.html")) {
     File file = SPIFFS.open("/index.html", "r");
     if (file) {
       client.println("HTTP/1.1 200 OK");

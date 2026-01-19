@@ -3,43 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OPD</title>
-
+<title>Scrollable Video Player</title>
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow:hidden; display:flex; justify-content:center; align-items:center; height:100vh; }
 
-body {
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden;
-}
-
-.video-wrapper,
-.tap-zone,
-video {
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+.video-container {
+  width: 100%;
+  max-width: 390px;
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
 }
 
 .video-wrapper {
   position: relative;
   width: 100%;
-  max-width: 390px;
-  aspect-ratio: 9 / 16;
-  background: #000;
+  aspect-ratio: 9/16;
+  background:#000;
+  scroll-snap-align: start;
   border-radius: 20px;
   overflow: hidden;
+  margin-bottom: 16px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.8);
   border: 1px solid #222;
 }
@@ -53,124 +38,194 @@ video {
 
 .tap-zone {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 33.33%;
-  z-index: 2;
+  top:0; bottom:0;
+  width:33.33%;
+  z-index:2;
 }
 
-.tap-left { left: 0; }
-.tap-center { left: 33.33%; }
-.tap-right { right: 0; }
+.tap-left { left:0; }
+.tap-center { left:33.33%; }
+.tap-right { right:0; }
 
 .play-icon {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top:50%; left:50%;
   transform: translate(-50%, -50%);
-  font-size: 64px;
+  font-size:64px;
   color: rgba(255,255,255,0.9);
-  opacity: 0;
-  pointer-events: none;
+  opacity:0;
+  pointer-events:none;
   transition: opacity 0.25s ease;
-  z-index: 3;
+  z-index:3;
 }
 
-.play-icon.show {
-  opacity: 1;
-}
+.play-icon.show { opacity:1; }
 
 .progress-container {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  height: 4px;
+  bottom:12px;
+  left:12px; right:12px;
+  height:4px;
   background: rgba(255,255,255,0.3);
-  border-radius: 4px;
-  overflow: hidden;
-  z-index: 3;
+  border-radius:4px;
+  overflow:hidden;
+  z-index:3;
 }
 
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #fff;
-}
+.progress-bar { height:100%; width:0%; background:#fff; }
 </style>
 </head>
-
 <body>
 
-<div class="video-wrapper">
-  <video id="video" autoplay playsinline loop>
-    <source src="/video.mp4" type="video/mp4">
-  </video>
-
-  <div class="tap-zone tap-left"></div>
-  <div class="tap-zone tap-center"></div>
-  <div class="tap-zone tap-right"></div>
-
-  <div id="icon" class="play-icon">▶</div>
-
-  <div class="progress-container">
-    <div id="progress" class="progress-bar"></div>
-  </div>
+<div class="video-container" id="videoContainer">
+  <!-- Videos will be injected here -->
 </div>
 
 <script>
-const video = document.getElementById("video");
-const icon = document.getElementById("icon");
-const progress = document.getElementById("progress");
+const videoContainer = document.getElementById("videoContainer");
+const totalVideos = 10; // for testing
+let currentIndex = 0;
 
-let iconTimeout;
-
-function showIcon(symbol) {
-  icon.textContent = symbol;
-  icon.classList.add("show");
-  clearTimeout(iconTimeout);
-  iconTimeout = setTimeout(() => {
-    icon.classList.remove("show");
-  }, 600);
+// SERVER REQUEST FUNCTION
+function requestVideoId(index) {
+  fetch("/videoId?i="+index)
+  .then(response => response.text())
+  .then(data => {c 
+    if (data != "err" || data != "done") {
+      return data;
+    } else if (data == "err") {
+      alert("An error occured loading the video.");
+    } else if (data == "done") {
+      return requestVideoId(1);
+      alert("Wow. You doomscrolled so long that you reached the end.\nIt will reset to the first video soon.");
+    }
+  })
 }
 
-document.querySelector(".tap-center").addEventListener("click", (e) => {
-  e.preventDefault();
-  if (video.paused) {
-    video.play();
-    showIcon("▶");
-  } else {
-    video.pause();
-    showIcon("⏸");
+// CREATE VIDEO ELEMENT
+function createVideoElement(index) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "video-wrapper";
+
+  const video = document.createElement("video");
+  video.src = requestVideoId(index);
+  video.autoplay = index === currentIndex; // play only current
+  video.playsInline = true;
+  video.loop = true;
+  wrapper.appendChild(video);
+
+  // Tap zones
+  const tapLeft = document.createElement("div");
+  tapLeft.className = "tap-zone tap-left";
+  const tapCenter = document.createElement("div");
+  tapCenter.className = "tap-zone tap-center";
+  const tapRight = document.createElement("div");
+  tapRight.className = "tap-zone tap-right";
+  wrapper.appendChild(tapLeft);
+  wrapper.appendChild(tapCenter);
+  wrapper.appendChild(tapRight);
+
+  // Play / 2x icons
+  const icon = document.createElement("div");
+  icon.className = "play-icon";
+  icon.textContent = "▶";
+  wrapper.appendChild(icon);
+
+  const progressContainer = document.createElement("div");
+  progressContainer.className = "progress-container";
+  const progressBar = document.createElement("div");
+  progressBar.className = "progress-bar";
+  progressContainer.appendChild(progressBar);
+  wrapper.appendChild(progressContainer);
+
+  let iconTimeout;
+  function showIcon(symbol) {
+    icon.textContent = symbol;
+    icon.classList.add("show");
+    clearTimeout(iconTimeout);
+    iconTimeout = setTimeout(() => icon.classList.remove("show"), 600);
+  }
+
+  // CENTER TAP: play/pause
+  tapCenter.addEventListener("click", e => {
+    e.preventDefault();
+    if(video.paused){ video.play(); showIcon("▶"); }
+    else{ video.pause(); showIcon("⏸"); }
+  });
+
+  // LEFT/RIGHT TAP: 2x speed
+  function start2x() { video.playbackRate = 2; showIcon("2x"); }
+  function end2x() { video.playbackRate = 1; }
+
+  [tapLeft, tapRight].forEach(el => {
+    el.addEventListener("touchstart", e => { e.preventDefault(); start2x(); }, { passive:false });
+    el.addEventListener("mousedown", start2x);
+    ["touchend","touchcancel","mouseup","mouseleave"].forEach(evt => el.addEventListener(evt,end2x));
+  });
+
+  // Progress bar
+  video.addEventListener("timeupdate", () => {
+    if(!video.duration) return;
+    progressBar.style.width = (video.currentTime / video.duration * 100) + "%";
+  });
+
+  return wrapper;
+}
+
+// LOAD SURROUNDING VIDEOS
+function loadVideos(index) {
+  videoContainer.innerHTML = "";
+  const indices = [];
+
+  // 1 before
+  if(index > 0) indices.push(index-1);
+
+  // current
+  indices.push(index);
+
+  // 2 after
+  if(index + 1 < totalVideos) indices.push(index+1);
+  if(index + 2 < totalVideos) indices.push(index+2);
+
+  indices.forEach(i => videoContainer.appendChild(createVideoElement(i)));
+
+  // Scroll to current video
+  const currentWrapper = videoContainer.children[index > 0 ? 1 : 0];
+  currentWrapper.scrollIntoView({ behavior: "auto" });
+}
+
+// PAUSE ALL VIDEOS EXCEPT CURRENT
+function updatePlayingVideo() {
+  const wrappers = [...videoContainer.children];
+  wrappers.forEach((wrapper,i) => {
+    const video = wrapper.querySelector("video");
+    if(i === (currentIndex > 0 ? 1 : 0)) video.play();
+    else video.pause();
+  });
+}
+
+// SCROLL HANDLER
+videoContainer.addEventListener("scroll", () => {
+  const wrappers = [...videoContainer.children];
+  const containerTop = videoContainer.getBoundingClientRect().top;
+
+  let visibleIndex = wrappers.findIndex(wrapper => {
+    const rect = wrapper.getBoundingClientRect();
+    // Check if most of the wrapper is visible
+    return rect.top < window.innerHeight/2 && rect.bottom > window.innerHeight/2;
+  });
+
+  if(visibleIndex === -1) return;
+
+  const globalIndex = currentIndex > 0 ? visibleIndex + currentIndex - 1 : visibleIndex;
+  if(globalIndex !== currentIndex && globalIndex >= 0 && globalIndex < totalVideos) {
+    currentIndex = globalIndex;
+    loadVideos(currentIndex);
   }
 });
 
-["tap-left", "tap-right"].forEach(cls => {
-  const el = document.querySelector("." + cls);
-
-  const start = (e) => {
-    e.preventDefault();
-    video.playbackRate = 2;
-  };
-
-  const end = (e) => {
-    e.preventDefault();
-    video.playbackRate = 1;
-  };
-
-  el.addEventListener("touchstart", start, { passive: false });
-  el.addEventListener("mousedown", start);
-
-  ["touchend", "touchcancel", "mouseup", "mouseleave"].forEach(evt => {
-    el.addEventListener(evt, end);
-  });
-});
-
-video.addEventListener("timeupdate", () => {
-  if (!video.duration) return;
-  progress.style.width = (video.currentTime / video.duration) * 100 + "%";
-});
+// INITIAL LOAD
+loadVideos(currentIndex);
 </script>
-
 </body>
 </html>
