@@ -2,16 +2,16 @@
 #include <SPI.h>
 #include <SD.h>
 #include <SPIFFS.h>
+#include <vector>
 
-const char* ssid = "The Bomb";
-const char* password = "verysafepassword";
+String ssid, password;
 
 WiFiServer server(80);
 
 #define SD_CS 5
 
 IPAddress local_ip(192,168,69,69);
-IPAddress gateway(192,168,10,1);
+IPAddress gateway(192,168,69,69);
 IPAddress subnet(255,255,255,0);
 
 void setup() {
@@ -23,14 +23,29 @@ void setup() {
   delay(300);
   SD.begin(SD_CS, SPI, 4000000);
 
+  File file = SPIFFS.open("/settings.txt", "r");
+
+  if (file) {
+    while (file.available()) {
+      String data = file.readString();
+      ssid = data.substring(0, data.indexOf("+"));
+      password = data.substring(data.indexOf("+") + 1);
+    }
+    file.close();
+  }
+
   WiFi.softAPConfig(local_ip, gateway, subnet);
   WiFi.softAP(ssid, password);
 
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
+  Serial.println("AP online.");
+  Serial.print("SSID: ");
+  Serial.println(ssid);
+  Serial.print("Local IP: ");
+  Serial.println(WiFi.softAPIP());
 
   server.begin();
+
+  Serial.println("Server started.");
 }
 
 String getVideoId(const int index) {
